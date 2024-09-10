@@ -9,7 +9,7 @@ from model import mlp, get_acc, num_params
 from data import load_data
 
 
-@jax.jit
+#@jax.jit
 def update_archive(
     behavior_descriptors: tuple[float, float],
     quality: float,
@@ -107,17 +107,23 @@ def run_map_elites(
             )
             quality = (bd[0] * odd_len + bd[1] * even_len) / (odd_len + even_len)
             archive, qualities, occupied = update_archive(
-                bd, quality, model, archive, qualities, occupied
+                bd, quality, child, archive, qualities, occupied
             )
 
             # log
             best_quality = jnp.max(qualities)
             result["evals"].append(step)
             if store_train_results:
-                result["train_acc"].append(best_quality)
+                result["train_values"].append(best_quality)
 
             # test
             i, j = jnp.where(qualities == best_quality)
             acc = get_acc(mlp(archive[i[0], j[0], :], x_test), y_test)
-            result["test_acc"].append(acc)
+            result["test_values"].append(acc)
+            if step % 1000 == 0:
+                print(f"Run: {run}, Step: {step}, Test Acc: {acc}, Train Acc: {best_quality}")
     return results
+
+
+if __name__ == "__main__":
+    run_map_elites(1, 10000, True)

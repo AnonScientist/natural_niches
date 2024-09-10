@@ -42,13 +42,23 @@ def main():
             file_name += "_no_matchmaker"
         results = run_natural_niches(**args_dict)
     elif method == "ga":
-        assert args.no_matchmaker, "GA does not use matchmaker"
+        if not args.no_matchmaker:
+            print('WARNING: GA can\'t use matchmaker. Disabling it.')
+            args_dict["no_matchmaker"] = True
+        if args.no_crossover:
+            file_name += "_no_crossover"
+        if args.no_splitpoint and not args.no_crossover:
+            file_name += "_no_splitpoint"
         results = run_natural_niches(**args_dict, alpha=0.0)
     elif method == "map_elites":
+        if args.no_crossover or args.no_splitpoint or args.no_matchmaker:
+            raise Exception("Map Elites can't use no_crossover, no_splitpoint or no_matchmaker")
         results = run_map_elites(
             args.runs, args.total_forward_passes, args.store_train_results
         )
     elif method == "cma_es":
+        if args.no_crossover or args.no_splitpoint or args.no_matchmaker:
+            raise Exception("CMA-ES can't use no_crossover, no_splitpoint or no_matchmaker")
         results = run_cma_es(
             args.runs,
             args.pop_size,
