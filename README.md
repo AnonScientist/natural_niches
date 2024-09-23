@@ -2,7 +2,7 @@
 
 This repository contains code for the paper: Improving Model Merging with Natural Niches. 
 
-Using this repository you can reproduce the results in the image below, which shows that Natural Niches can achieve comparable results to CMA-ES when evolving MNIST classifiers from scratch.
+Using this repository you can reproduce the results in the image below, which shows that Natural Niches can achieve comparable results to CMA-ES when evolving MNIST classifiers from scratch. We will soon update this repo to also reproduce our results when evolving classifiers from pre-trained models.
 
 ![evolving classifiers from scratch](figure.png)
 
@@ -40,21 +40,6 @@ python main.py --method <method>
 
 ```sh
 python main.py --method ga --no_crossover
-```
-
-## Ablation Studies
-
-- **Without Crossover:**
-```sh
-python main.py --method natural_niches --no_crossover
-```
-- **Without Matchmaker:**
-```sh
-python main.py --method natural_niches --no_matchmaker
-```
-- **Without Split-point:**
-```sh
-python main.py --method natural_niches --no_splitpoint
 ```
 
 ## Displaying results
