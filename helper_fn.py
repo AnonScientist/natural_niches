@@ -1,6 +1,9 @@
 import jax
 import jax.numpy as jnp
 
+from model import train, num_params
+from data import load_data
+
 
 def slerp(val: jnp.ndarray, x: jnp.ndarray, y: jnp.ndarray) -> jnp.ndarray:
     # Normalize the inputs.
@@ -76,3 +79,17 @@ def crossover(
 def mutate(params: jnp.ndarray, rand_key: jnp.ndarray, std: float = 0.01):
     noise = jax.random.normal(rand_key, shape=params.shape) * std
     return params + noise
+
+
+def get_pre_trained_models() -> tuple[jnp.ndarray, jnp.ndarray]:
+    (x_train, y_train), _ = load_data()
+    mask = y_train < 5
+    d0to4_images, d0to4_labels = x_train[mask], y_train[mask]
+    d5to9_images, d5to9_labels = x_train[~mask], y_train[~mask]
+    seed_key = jax.random.PRNGKey(42)
+    key1, key2 = jax.random.split(seed_key, 2)
+    model_1 = jax.random.normal(key1, (num_params,)) * 0.01
+    model_2 = jax.random.normal(key2, (num_params,)) * 0.01
+    model_1 = train(model_1, d0to4_images, d0to4_labels)
+    model_2 = train(model_2, d5to9_images, d5to9_labels)
+    return model_1, model_2

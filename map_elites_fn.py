@@ -4,7 +4,7 @@ from collections import defaultdict
 
 from tqdm import tqdm
 
-from helper_fn import crossover, mutate
+from helper_fn import crossover, mutate, get_pre_trained_models
 from model import mlp, get_acc, num_params
 from data import load_data
 
@@ -59,7 +59,7 @@ def sample_parents(
 
 
 def run_map_elites(
-    runs: int, total_forward_passes: int, store_train_results: bool
+    runs: int, total_forward_passes: int, store_train_results: bool, use_pre_trained: bool
 ) -> list:
     (x_train, y_train), (x_test, y_test) = load_data()
     mask = y_train % 2 == 1
@@ -68,6 +68,9 @@ def run_map_elites(
     even_num_images, even_num_labels = x_train[mask], y_train[mask]
     odd_len = len(odd_num_images)
     even_len = len(even_num_images)
+    
+    if use_pre_trained:
+        model_1, model_2 = get_pre_trained_models()
 
     results = []
     for run in tqdm(range(runs), desc="Runes"):
@@ -81,10 +84,11 @@ def run_map_elites(
         qualities = jnp.zeros([10, 10])
         occupied = jnp.zeros([10, 10], dtype=jnp.bool)
 
-        # random initialise two models and place them in the archive
-        key, key1, key2 = jax.random.split(key, 3)
-        model_1 = jax.random.normal(key1, (num_params,)) * 0.01
-        model_2 = jax.random.normal(key2, (num_params,)) * 0.01
+        if not use_pre_trained:
+            # random initialise two models and place them in the archive
+            key, key1, key2 = jax.random.split(key, 3)
+            model_1 = jax.random.normal(key1, (num_params,)) * 0.01
+            model_2 = jax.random.normal(key2, (num_params,)) * 0.01
 
         for model in (model_1, model_2):
             # behaviour descriptors
@@ -101,7 +105,8 @@ def run_map_elites(
             k1, k2, k3, key = jax.random.split(key, 4)
             parents = sample_parents(archive, occupied, qualities, k1)
             child = crossover(parents, k2)
-            child = mutate(child, k3)
+            if not use_pre_trained:  # mutate only when starting from scratch
+                child = mutate(child, k3)
             bd = get_acc(mlp(child, odd_num_images), odd_num_labels), get_acc(
                 mlp(child, even_num_images), even_num_labels
             )

@@ -7,7 +7,7 @@ from tqdm import tqdm
 from model import num_params
 from data import load_data
 from model import mlp, get_acc
-from helper_fn import crossover, crossover_without_splitpoint, mutate
+from helper_fn import crossover, crossover_without_splitpoint, mutate, get_pre_trained_models
 
 
 def sample_parents(
@@ -81,6 +81,7 @@ def run_natural_niches(
     no_matchmaker: bool,
     no_crossover: bool,
     no_splitpoint: bool,
+    use_pre_trained: bool,
     alpha: float = 1.0,
 ) -> list:
     (x_train, y_train), (x_test, y_test) = load_data()
@@ -90,6 +91,8 @@ def run_natural_niches(
         not no_splitpoint,
     )
     results = []
+    if use_pre_trained:
+        model_1, model_2 = get_pre_trained_models()
 
     for run in tqdm(range(runs), desc="Runs"):
         results.append(defaultdict(list))
@@ -101,10 +104,11 @@ def run_natural_niches(
         archive = jnp.zeros([pop_size, num_params])
         scores = jnp.zeros([pop_size, len(x_train)], dtype=jnp.bool)
 
-        # random initialise two models and place them in the archive
-        key, key1, key2 = jax.random.split(key, 3)
-        model_1 = jax.random.normal(key1, (num_params,)) * 0.01
-        model_2 = jax.random.normal(key2, (num_params,)) * 0.01
+        if not use_pre_trained:
+            # random initialise two models and place them in the archive
+            key, key1, key2 = jax.random.split(key, 3)
+            model_1 = jax.random.normal(key1, (num_params,)) * 0.01
+            model_2 = jax.random.normal(key2, (num_params,)) * 0.01
 
         for model in (model_1, model_2):
             logits = mlp(model, x_train)
@@ -121,7 +125,8 @@ def run_natural_niches(
                     child = crossover_without_splitpoint(parents, k2)
             else:
                 child = parents[0]
-            child = mutate(child, k3)
+            if not use_pre_trained:  # mutate only if starting from scratch
+                child = mutate(child, k3)
             logits = mlp(child, x_train)
             score = jnp.argmax(logits, axis=1) == y_train
             archive, scores = update_archive(score, child, archive, scores, alpha)
